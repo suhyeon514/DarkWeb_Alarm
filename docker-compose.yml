@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # 1. 데이터베이스 (PostgreSQL)
+  db:
+    image: postgres:15
+    container_name: darkweb_db
+    environment:
+      POSTGRES_USER: kali_user
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: darkweb_project
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kali_user -d darkweb_project"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # 2. 크롤러 (Python App)
+  crawler:
+    build: .
+    container_name: darkweb_crawler
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # ★ 핵심: 팀원 PC에 있는 설정파일을 컨테이너 안으로 연결(마운트)
+      - ./.env:/app/.env
+      - ./twitter_auth.json:/app/twitter_auth.json
+    environment:
+      # .env가 없을 때를 대비한 기본값 (컨테이너 내부 통신용 host는 'db')
+      - DB_HOST=db 
+      - DB_USER=kali_user
+      - DB_PASSWORD=password123
+
+volumes:
+  pgdata:
