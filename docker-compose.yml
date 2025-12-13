@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: telegram-postgres
+    environment:
+      POSTGRES_DB: ${PG_DB}
+      POSTGRES_USER: ${PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      TZ: Asia/Seoul
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  crawler:
+    build: .
+    container_name: telegram-crawler
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      PG_HOST: postgres
+      PG_PORT: "5432"
+      TG_SESSION_PATH: /app/sessions/anon
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # 세션/다운로드는 “호스트에 남겨서” 컨테이너 재생성해도 유지되게
+      - ./sessions:/app/sessions
+      - ./downloads:/app/downloads
+      - ./channel_name.txt:/app/channel_name.txt:ro
+    restart: unless-stopped
+  
+  login:
+    build: .
+    env_file: .env
+    environment:
+      TZ: Asia/Seoul
+      TG_SESSION_PATH: /app/sessions/anon
+    volumes:
+      - ./sessions:/app/sessions
+    command: ["python", "session_login.py"]
+    profiles: ["init"]   # 기본 up에는 안 뜸(원할 때만 실행)
+
+volumes:
+  pgdata:

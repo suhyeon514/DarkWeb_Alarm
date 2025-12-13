@@ -1,0 +1,22 @@
+# ✅ 절대 올리면 안 되는 민감 정보들
+.env
+*.session
+anon.session
+sessions/
+
+# 🧹 파이썬이 자동으로 만드는 캐시 파일들
+__pycache__/
+*.pyc
+
+# 🧪 가상환경 폴더 (있다면)
+venv/
+.venv/
+
+# (선택) IDE/에디터 설정 폴더
+.vscode/
+.idea/
+
+#download 폴더 안의 파일들
+downloads/
+db/
+channel_name.txt

@@ -1,0 +1,7 @@
+telethon
+python-dotenv
+psycopg2-binary
+pysocks
+requests
+beautifulsoup4
+lxml
