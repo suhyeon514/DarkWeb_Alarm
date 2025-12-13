@@ -2,12 +2,15 @@ import os
 import random
 import asyncio
 from datetime import timedelta
+from zoneinfo import ZoneInfo
 
 from dotenv import load_dotenv
 from telethon import TelegramClient, events
 from telethon.errors import FloodWaitError
 import psycopg2
 import socks
+
+KST = ZoneInfo("Asia/Seoul")
 
 # ============== 설정 ==============
 CHANNEL_NAME_FILE = "channel_name.txt"
@@ -142,7 +145,7 @@ async def process_and_save(channel_id: int, channel_name: str, message):
 
     msg_id = int(message.id)
     text = message.message or ""
-    post_date = message.date + timedelta(hours=9)  # KST
+    post_date = message.date.astimezone(KST)  # KST
 
     has_file = bool(message.media)
     file_path = None
@@ -182,16 +185,19 @@ async def initial_sync(found, limit: int):
     for name, dialog in found.items():
         channel_id = int(dialog.id)
 
-        # ✅ 이미 DB에 데이터가 있으면 최초 실행이 아니라고 보고 스킵
         last_id = await asyncio.to_thread(db_get_last_message_id, channel_id)
         if last_id > 0:
             print(f"[INFO] {name}: 이미 데이터 존재(last_id={last_id}) → 초기 동기화 스킵")
             continue
 
         try:
-            # reverse=True: 오래된 것부터 저장
-            async for message in client.iter_messages(dialog.entity, limit=limit, reverse=True):
-                await process_and_save(channel_id, name, message)
+            # ✅ 최신 limit개 가져오기 (리스트는 최신→과거)
+            msgs = await client.get_messages(dialog.entity, limit=limit)
+
+            # ✅ DB에는 과거→최신으로 저장
+            for m in reversed(msgs):
+                await process_and_save(channel_id, name, m)
+
         except FloodWaitError as e:
             print(f"[FLOOD] 초기 동기화 중 FloodWait {e.seconds}초 대기...")
             await asyncio.sleep(e.seconds)
@@ -303,7 +309,7 @@ async def entry():
         	return
     	await main()
     finally:
-    	await clitent.disconnect()
+    	await client.disconnect()
 
 if __name__ == "__main__":
     client.loop.run_until_complete(entry())
