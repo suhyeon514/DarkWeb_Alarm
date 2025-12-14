@@ -1,0 +1,19 @@
+# ---- Core HTTP / Crawling ----
+requests==2.31.0
+httpx==0.27.0
+pysocks==1.7.1
+beautifulsoup4==4.12.3
+lxml==5.1.0
+
+# ---- Tor Control (optional: NEWNYM 회선 변경) ----
+stem==1.8.2
+
+# ---- Telegram Bot ----
+python-telegram-bot==20.9
+
+# ---- Environment Config ----
+python-dotenv==1.0.1
+
+# ---- Utilities ----
+pydantic==2.6.4
+tqdm==4.66.2
